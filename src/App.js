@@ -1,12 +1,14 @@
 import React, { Component } from "react";
-import {
-  Header,
-  MovieDetails,
-  MovieList,
-  Loading,
-  SearchBar,
-} from "./components";
+import { Header } from "./components";
 import apiMovie, { apiMovieMap } from "./conf/api.movie";
+import Films from "./features/films";
+import Favoris from "./features/favoris/components";
+import {
+  BrowserRouter as Router,
+  Route,
+  Switch,
+  Redirect,
+} from "react-router-dom";
 
 class App extends Component {
   constructor(props) {
@@ -15,6 +17,7 @@ class App extends Component {
       movies: null,
       selectedMovie: 0,
       loaded: false,
+      favoris: [],
     };
   }
 
@@ -35,7 +38,6 @@ class App extends Component {
       .get("/discover/movie")
       .then((response) => response.data.results)
       .then((moviesApi) => {
-        console.log(moviesApi);
         const movies = moviesApi.map(apiMovieMap);
         this.updateMovies(movies);
       })
@@ -52,23 +54,49 @@ class App extends Component {
     });
   };
 
+  addFavori = (title) => {
+    const favoris = this.state.favoris.slice();
+    const film = this.state.movies.find((m) => m.title === title);
+    favoris.push(film);
+    this.setState({ favoris });
+  };
+
+  removeFavori = (title) => {
+    const favoris = this.state.favoris.slice();
+    const index = this.state.favoris.findIndex((f) => f.title === title);
+    favoris.splice(index, 1);
+    this.setState({ favoris });
+  };
+
   render() {
     return (
-      <div className="App d-flex flex-column">
-        <Header />
-        <SearchBar updateMovies={this.updateMovies} />
-        {this.state.loaded ? (
-          <div className="d-flex flex-row border flex-fill pt-4 p-2">
-            <MovieList
-              movies={this.state.movies}
-              updateSelectedMovie={this.updateSelectedMovie}
+      <Router>
+        <div className="App d-flex flex-column">
+          <Header />
+          <Switch>
+            <Route
+              path="/films"
+              render={(props) => {
+                return (
+                  <Films
+                    {...props}
+                    updateMovies={this.updateMovies}
+                    loaded={this.state.loaded}
+                    movies={this.state.movies}
+                    updateSelectedMovie={this.updateSelectedMovie}
+                    selectedMovie={this.state.selectedMovie}
+                    addFavori={this.addFavori}
+                    removeFavori={this.removeFavori}
+                    favoris={this.state.favoris.map((f) => f.title)}
+                  />
+                );
+              }}
             />
-            <MovieDetails movie={this.state.movies[this.state.selectedMovie]} />
-          </div>
-        ) : (
-          <Loading />
-        )}
-      </div>
+            <Route path="/favoris" component={Favoris} />
+            <Redirect to="/films" />
+          </Switch>
+        </div>
+      </Router>
     );
   }
 }
