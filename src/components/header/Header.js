@@ -5,9 +5,13 @@ export default class Header extends Component {
   render() {
     return (
       <header className="navbar navbar-expand-lg navbar-light bg-dark">
-        <a className="navbar-brand text-white" href="/">
+        <NavLink
+          to="/films"
+          className="nav-link text-white"
+          activeClassName="active"
+        >
           Seboflix
-        </a>
+        </NavLink>
         <button className="navbar-toggler">
           <span className="navbar-toggler-icon"></span>
         </button>

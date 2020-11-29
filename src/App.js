@@ -1,8 +1,10 @@
 import React, { Component } from "react";
 import { Header } from "./components";
 import apiMovie, { apiMovieMap } from "./conf/api.movie";
+import apiFirebase from "./conf/api.firebase";
 import Films from "./features/films";
-import Favoris from "./features/favoris/components";
+import Favoris from "./features/favoris";
+
 import {
   BrowserRouter as Router,
   Route,
@@ -17,7 +19,7 @@ class App extends Component {
       movies: null,
       selectedMovie: 0,
       loaded: false,
-      favoris: [],
+      favoris: null,
     };
   }
 
@@ -42,6 +44,11 @@ class App extends Component {
         this.updateMovies(movies);
       })
       .catch((err) => console.log(err));
+
+    apiFirebase.get("favoris.json").then((response) => {
+      let favoris = response.data ? response.data : [];
+      this.updateFavori(favoris);
+    });
   }
   /**
    * modifie le state de l'app avec la liste des films
@@ -50,7 +57,14 @@ class App extends Component {
   updateMovies = (movies) => {
     this.setState({
       movies,
-      loaded: true,
+      loaded: this.state.favoris ? true : false, //vérifie si la query sur favori a fini et set loaded à true
+    });
+  };
+
+  updateFavori = (favoris) => {
+    this.setState({
+      favoris,
+      loaded: this.state.movies ? true : false, //vérifie si la query sur movie a fini et set loaded à true
     });
   };
 
@@ -58,15 +72,23 @@ class App extends Component {
     const favoris = this.state.favoris.slice();
     const film = this.state.movies.find((m) => m.title === title);
     favoris.push(film);
-    this.setState({ favoris });
+    this.setState({ favoris }, () => {
+      this.saveFavori();
+    });
   };
 
   removeFavori = (title) => {
     const favoris = this.state.favoris.slice();
     const index = this.state.favoris.findIndex((f) => f.title === title);
     favoris.splice(index, 1);
-    this.setState({ favoris });
+    this.setState({ favoris }, () => {
+      this.saveFavori();
+    });
   };
+
+  saveFavori() {
+    apiFirebase.put("favoris.json", this.state.favoris);
+  }
 
   render() {
     return (
@@ -87,12 +109,24 @@ class App extends Component {
                     selectedMovie={this.state.selectedMovie}
                     addFavori={this.addFavori}
                     removeFavori={this.removeFavori}
-                    favoris={this.state.favoris.map((f) => f.title)}
+                    favoris={this.state.favoris}
                   />
                 );
               }}
             />
-            <Route path="/favoris" component={Favoris} />
+            <Route
+              path="/favoris"
+              render={(props) => {
+                return (
+                  <Favoris
+                    {...props}
+                    loaded={this.state.loaded}
+                    favoris={this.state.favoris}
+                    removeFavori={this.removeFavori}
+                  />
+                );
+              }}
+            />
             <Redirect to="/films" />
           </Switch>
         </div>
